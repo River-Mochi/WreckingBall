@@ -12,7 +12,7 @@ const api = window["cs2/api"];
 const l10n = window["cs2/l10n"];
 const input = window["cs2/input"];
 const ui = window["cs2/ui"];
-const React = window["React"]; // JSX is not available? trying React.createElement
+const React = window["React"]; // Using React.createElement (no JSX)
 
 // Re-use the vanilla info row visuals
 const infoRowStyles = modding.getModule(
@@ -29,6 +29,12 @@ const InfoRow = modding.getModule(
     "game-ui/game/components/selected-info-panel/shared-components/info-row/info-row.tsx",
     "InfoRow"
 );
+
+// Slightly taller, much wider buttons for better readability
+const buttonStyle = {
+    padding: "4px 20px", // 4 = top/bottom, 20 = left/right
+    minWidth: 120,       // keep both buttons consistent width even with short labels
+};
 
 // Extends the SIP section renderer with our C# InfoSection type.
 function registerSection(components) {
@@ -56,7 +62,7 @@ function registerSection(components) {
             );
             const destroyTooltip = translate(
                 "WreckingBall/Tooltips/Destroy",
-                "Flag this building as destroyed so the game can spawn rubble and handle cleanup."
+                "Collapse this building now so the game can spawn rubble, VFX and cleanup."
             );
 
             const onAbandonClick = () => {
@@ -79,6 +85,7 @@ function registerSection(components) {
                         {
                             focusKey: input.FOCUS_DISABLED,
                             onSelect: onAbandonClick,
+                            style: buttonStyle,
                         },
                         abandonLabel
                     ),
@@ -95,6 +102,7 @@ function registerSection(components) {
                         {
                             focusKey: input.FOCUS_DISABLED,
                             onSelect: onDestroyClick,
+                            style: buttonStyle,
                         },
                         destroyLabel
                     ),
