@@ -84,5 +84,12 @@
 		<None Include="$(ModPropsFile)" Link="Properties\Mod.props" />
 		<None Include="$(ModTargetsFile)" Link="Properties\Mod.targets" />
 	</ItemGroup>
+<ItemGroup>
+  <None Update="docs\**\*">
+    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+  </None>
+</ItemGroup>
+
 
 </Project>
