@@ -79,15 +79,20 @@
     <None Include="$(ModTargetsFile)" Link="Properties\Mod.targets" />
   </ItemGroup>
 
-  <!-- Docs: keep in project, but never ship with mod -->
+  <!-- Docs: present in project, not shipped in mod -->
   <ItemGroup>
-    <None Include="docs\**\*">
+    <None Update="docs\**\*">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </None>
   </ItemGroup>
 
-  <!-- UI script: ensure WreckingBall.mjs is copied next to the DLL -->
+  <!-- Remove obsolete mis-spelled script, in case any imported target includes it -->
+  <ItemGroup>
+    <None Remove="WreakingBall.mjs" />
+  </ItemGroup>
+
+  <!-- UI script: correct name, copy next to DLL -->
   <ItemGroup>
     <None Update="WreckingBall.mjs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
