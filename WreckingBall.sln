@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11222.15 d18.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WreckingBall", "WreckingBall.csproj", "{5AFC5DB7-6A8D-8D7B-CAF7-665A1E7DDFB3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5AFC5DB7-6A8D-8D7B-CAF7-665A1E7DDFB3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5AFC5DB7-6A8D-8D7B-CAF7-665A1E7DDFB3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5AFC5DB7-6A8D-8D7B-CAF7-665A1E7DDFB3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5AFC5DB7-6A8D-8D7B-CAF7-665A1E7DDFB3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A05617F2-47C2-40D5-8745-DB68DF6C7FC8}
+	EndGlobalSection
+EndGlobal
