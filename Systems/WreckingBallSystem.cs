@@ -28,6 +28,9 @@ namespace WreckingBall
         private EntityArchetype m_DamageEventArchetype;
         private EntityArchetype m_DestroyEventArchetype;
 
+        // Explicit “no IconFlags” value (matches enum default = 0).
+        private const IconFlags kNoIconFlags = (IconFlags)0;
+
         protected override void OnCreate()
         {
             base.OnCreate();
@@ -35,15 +38,15 @@ namespace WreckingBall
             m_AbandonQueue = new NativeQueue<Entity>(Allocator.Persistent);
             m_DestroyQueue = new NativeQueue<Entity>(Allocator.Persistent);
 
-            // Vanilla systems we piggy-back on
+            // Vanilla systems used for simulation timing and icon handling.
             m_SimulationSystem = World.GetOrCreateSystemManaged<SimulationSystem>();
             m_IconCommandSystem = World.GetOrCreateSystemManaged<IconCommandSystem>();
 
-            // Global building configuration (de-facto singleton)
+            // Global building configuration (de-facto singleton).
             m_BuildingConfigQuery = GetEntityQuery(
                 ComponentType.ReadOnly<BuildingConfigurationData>());
 
-            // Event archetypes used by DestroyAbandonedSystem
+            // Event archetypes used by DestroyAbandonedSystem.
             m_DamageEventArchetype = EntityManager.CreateArchetype(
                 ComponentType.ReadWrite<Event>(),
                 ComponentType.ReadWrite<Damage>());
@@ -53,7 +56,7 @@ namespace WreckingBall
                 ComponentType.ReadWrite<Destroy>());
 
 #if DEBUG
-            WreckingBall.Mod.Log.Info("[WreckingBallSystem] Created.");
+            Mod.Log.Info("[WreckingBallSystem] Created.");
 #endif
         }
 
@@ -94,7 +97,7 @@ namespace WreckingBall
 
         protected override void OnUpdate()
         {
-            var em = EntityManager;
+            EntityManager em = EntityManager;
 
             // Use the current simulation frame for Abandoned timer.
             uint frame = 0;
@@ -105,17 +108,17 @@ namespace WreckingBall
 
             // --- ABANDON: vanilla-style delayed collapse via DestroyAbandonedSystem ---
 
-            while (m_AbandonQueue.TryDequeue(out var entity))
+            while (m_AbandonQueue.TryDequeue(out Entity entity))
             {
 #if DEBUG
-                WreckingBall.Mod.Log.Info($"[WreckingBallSystem] Processing ABANDON for {entity}.");
+                Mod.Log.Info($"[WreckingBallSystem] Processing ABANDON for {entity}.");
 #endif
                 if (!em.Exists(entity) || !em.HasComponent<Building>(entity))
                 {
                     continue;
                 }
 
-                // Clear conflicting flags
+                // Clear conflicting flags.
                 if (em.HasComponent<Destroyed>(entity))
                 {
                     em.RemoveComponent<Destroyed>(entity);
@@ -127,10 +130,10 @@ namespace WreckingBall
                 }
 
                 // Mark as abandoned and reset the abandonment timer, so
-                // DestroyAbandonedSystem will apply the configured delay.
+                // DestroyAbandonedSystem applies the configured delay.
                 if (em.HasComponent<Abandoned>(entity))
                 {
-                    var abandoned = em.GetComponentData<Abandoned>(entity);
+                    Abandoned abandoned = em.GetComponentData<Abandoned>(entity);
                     abandoned.m_AbandonmentTime = frame;
                     em.SetComponentData(entity, abandoned);
                 }
@@ -142,7 +145,7 @@ namespace WreckingBall
                     });
                 }
 
-                // Nudge simulation to recalc icons/effects/etc.
+                // Nudge simulation to recalc icons and related effects.
                 if (!em.HasComponent<Updated>(entity))
                 {
                     em.AddComponent<Updated>(entity);
@@ -155,19 +158,19 @@ namespace WreckingBall
             IconCommandBuffer iconBuffer = default;
             bool haveConfig = false;
             bool haveIconBuffer = false;
-            var iconSystem = m_IconCommandSystem;
+            IconCommandSystem? iconSystem = m_IconCommandSystem;
 
-            while (m_DestroyQueue.TryDequeue(out var entity))
+            while (m_DestroyQueue.TryDequeue(out Entity entity))
             {
 #if DEBUG
-                WreckingBall.Mod.Log.Info($"[WreckingBallSystem] Processing DESTROY for {entity}.");
+                Mod.Log.Info($"[WreckingBallSystem] Processing DESTROY for {entity}.");
 #endif
                 if (!em.Exists(entity) || !em.HasComponent<Building>(entity))
                 {
                     continue;
                 }
 
-                // Clear conflicting flags
+                // Clear conflicting flags.
                 if (em.HasComponent<Abandoned>(entity))
                 {
                     em.RemoveComponent<Abandoned>(entity);
@@ -190,15 +193,15 @@ namespace WreckingBall
                 }
 
                 // Kick the same event-based collapse path vanilla uses:
-                //  1) Damage event
-                var damageEvent = em.CreateEntity(m_DamageEventArchetype);
+                //  1) Damage event.
+                Entity damageEvent = em.CreateEntity(m_DamageEventArchetype);
                 em.SetComponentData(damageEvent, new Damage(entity, new float3(1f, 0f, 0f)));
 
-                //  2) Destroy event
-                var destroyEvent = em.CreateEntity(m_DestroyEventArchetype);
+                //  2) Destroy event.
+                Entity destroyEvent = em.CreateEntity(m_DestroyEventArchetype);
                 em.SetComponentData(destroyEvent, new Destroy(entity, Entity.Null));
 
-                // Mirror DestroyAbandonedSystem's icon behaviour when possible:
+                // Mirror DestroyAbandonedSystem icon behaviour when possible:
                 // remove existing problem icons and add the collapsed-building icon.
                 if (haveIconBuffer)
                 {
@@ -209,7 +212,7 @@ namespace WreckingBall
                         buildingConfig.m_AbandonedCollapsedNotification,
                         IconPriority.FatalProblem,
                         IconClusterLayer.Default,
-                        (IconFlags)0,
+                        kNoIconFlags,
                         Entity.Null,
                         false,
                         false,
@@ -217,7 +220,7 @@ namespace WreckingBall
                         0f);
                 }
 
-                // Optional: mark building as having been updated this frame.
+                // Mark building as updated this frame.
                 if (!em.HasComponent<Updated>(entity))
                 {
                     em.AddComponent<Updated>(entity);

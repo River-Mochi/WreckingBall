@@ -1,4 +1,4 @@
-﻿// Mod.cs
+// Mod.cs
 // Purpose: Entry point for "Wrecking Ball [WB]" — registers settings/locales,
 //          hooks Selected Info Panel section, and wires the WreckingBallSystem
 //          into the GameSimulation update loop.
@@ -53,23 +53,23 @@ namespace WreckingBall
                 Log.Info($"{ModName} {ModTag} v{ModVersion} OnLoad");
             }
 
-            // Create settings instance
+            // Create settings instance.
             var setting = new Setting(this);
             Settings = setting;
 
-            // Locales (en-US for now)
+            // Locales (en-US for now).
             GameManager? gm = GameManager.instance;
             LocalizationManager? lm = gm?.localizationManager;
             lm?.AddSource("en-US", new LocaleEN(setting));
 
-            // Load saved settings + register Options UI
+            // Load saved settings + register Options UI.
             AssetDatabase.global.LoadSettings("WreckingBall", setting, new Setting(this));
             setting.RegisterInOptionsUI();
 
-            // Register simulation system (handles abandon/destroy requests)
+            // Register simulation system (handles abandon/destroy requests).
             updateSystem.UpdateAt<WreckingBallSystem>(SystemUpdatePhase.GameSimulation);
 
-            // Hook Selected Info Panel section for building actions
+            // Hook Selected Info Panel section for building actions.
             World world = World.DefaultGameObjectInjectionWorld;
             SelectedInfoUISystem? sipSystem = world.GetOrCreateSystemManaged<SelectedInfoUISystem>();
             WreckingBallSection? section = world.GetOrCreateSystemManaged<WreckingBallSection>();
@@ -89,7 +89,7 @@ namespace WreckingBall
                 Settings = null;
             }
 
-            // I don't think I need to explicitly remove the SIP section; game will tear it down with the world.
+            // Selected Info Panel sections are destroyed with the world during teardown.
         }
     }
 }

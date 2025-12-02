@@ -1,10 +1,9 @@
-﻿// Systems/WreckingBallSection.cs
+// Systems/WreckingBallSection.cs
 // Purpose: Selected Info Panel section that exposes "Abandon" and "Destroy"
 //          actions for the currently selected building via UI triggers.
 
 namespace WreckingBall
 {
-    using System;
     using Colossal.Logging;
     using Colossal.UI.Binding;
     using Game.Buildings;
@@ -66,8 +65,8 @@ namespace WreckingBall
 
         private bool IsVisible()
         {
-            var em = EntityManager;
-            var entity = selectedEntity;
+            EntityManager em = EntityManager;
+            Entity entity = selectedEntity;
 
             if (!em.Exists(entity))
             {
@@ -95,7 +94,7 @@ namespace WreckingBall
             m_Log?.Info($"[WreckingBallSection] AbandonBuilding trigger received for {selectedEntity}.");
 #endif
 
-            var entity = selectedEntity;
+            Entity entity = selectedEntity;
 
             if (entity == Entity.Null)
             {
@@ -109,7 +108,7 @@ namespace WreckingBall
             else
             {
                 // Fallback: apply directly if system is missing for some reason.
-                var em = EntityManager;
+                EntityManager em = EntityManager;
                 if (!em.Exists(entity) || !em.HasComponent<Building>(entity))
                 {
                     return;
@@ -146,7 +145,7 @@ namespace WreckingBall
 #if DEBUG
             m_Log?.Info($"[WreckingBallSection] DestroyBuilding trigger received for {selectedEntity}.");
 #endif
-            var entity = selectedEntity;
+            Entity entity = selectedEntity;
 
             if (entity == Entity.Null)
             {
@@ -159,7 +158,7 @@ namespace WreckingBall
             }
             else
             {
-                var em = EntityManager;
+                EntityManager em = EntityManager;
                 if (!em.Exists(entity) || !em.HasComponent<Building>(entity))
                 {
                     return;

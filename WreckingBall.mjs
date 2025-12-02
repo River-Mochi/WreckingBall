@@ -3,7 +3,7 @@
 //          for buildings, wired to the WreckingBall C# triggers.
 
 const modInfo = {
-    id: "WreckingBall",
+    id: "WreckingBall",  // must match Mod.ModId on the C# side for triggers
 };
 
 // CS2 modding globals
@@ -30,13 +30,13 @@ const InfoRow = modding.getModule(
     "InfoRow"
 );
 
-// Slightly taller, much wider buttons for better readability
+// Slightly smaller buttons with consistent width.
 const buttonStyle = {
-    padding: "4px 20px", // 4 = top/bottom, 20 = left/right
-    minWidth: 120,       // keep both buttons consistent width even with short labels
+    padding: "2px 10px",
+    minWidth: 100,
 };
 
-// Extends the SIP section renderer with our C# InfoSection type.
+// Extends the SIP section renderer with the C# InfoSection type.
 function registerSection(components) {
     console.log("[WreckingBall] registerSection called");
 
