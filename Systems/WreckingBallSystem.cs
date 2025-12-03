@@ -99,14 +99,14 @@ namespace WreckingBall
         {
             EntityManager em = EntityManager;
 
-            // Use the current simulation frame for Abandoned timer.
-            uint frame = 0;
-            if (m_SimulationSystem != null)
-            {
-                frame = m_SimulationSystem.frameIndex;
-            }
+            // Shared icon state for this frame (used by both Abandon and Destroy).
+            BuildingConfigurationData buildingConfig = default;
+            IconCommandBuffer iconBuffer = default;
+            bool haveConfig = false;
+            bool haveIconBuffer = false;
+            IconCommandSystem? iconSystem = m_IconCommandSystem;
 
-            // --- ABANDON: vanilla-style delayed collapse via DestroyAbandonedSystem ---
+            // --- ABANDON: realistic abandoned state for a single building ---
 
             while (m_AbandonQueue.TryDequeue(out Entity entity))
             {
@@ -117,6 +117,8 @@ namespace WreckingBall
                 {
                     continue;
                 }
+
+                Building building = em.GetComponentData<Building>(entity);
 
                 // Clear conflicting flags.
                 if (em.HasComponent<Destroyed>(entity))
@@ -129,36 +131,102 @@ namespace WreckingBall
                     em.RemoveComponent<Condemned>(entity);
                 }
 
-                // Mark as abandoned and reset the abandonment timer, so
-                // DestroyAbandonedSystem applies the configured delay.
-                if (em.HasComponent<Abandoned>(entity))
+                // Ensure the Abandoned tag is present, but DO NOT touch
+                // m_AbandonmentTime if it already exists. Vanilla systems
+                // own that timer (same behaviour as Eminent Domain).
+                if (!em.HasComponent<Abandoned>(entity))
                 {
-                    Abandoned abandoned = em.GetComponentData<Abandoned>(entity);
-                    abandoned.m_AbandonmentTime = frame;
-                    em.SetComponentData(entity, abandoned);
-                }
-                else
-                {
-                    em.AddComponentData(entity, new Abandoned
-                    {
-                        m_AbandonmentTime = frame,
-                    });
+                    em.AddComponent<Abandoned>(entity);
                 }
 
-                // Nudge simulation to recalc icons and related effects.
+                // Lazily grab config + icon buffer once (if available).
+                if (!haveConfig
+                    && iconSystem != null
+                    && !m_BuildingConfigQuery.IsEmptyIgnoreFilter)
+                {
+                    buildingConfig = m_BuildingConfigQuery.GetSingleton<BuildingConfigurationData>();
+                    iconBuffer = iconSystem.CreateCommandBuffer();
+                    haveConfig = true;
+                    haveIconBuffer = true;
+                }
+
+                // Utilities: abandoned buildings stop consuming/producing.
+                if (em.HasComponent<ElectricityConsumer>(entity))
+                {
+                    em.RemoveComponent<ElectricityConsumer>(entity);  }
+
+                if (em.HasComponent<WaterConsumer>(entity))
+                {
+                    em.RemoveComponent<WaterConsumer>(entity);  }
+
+                if (em.HasComponent<GarbageProducer>(entity))
+                {
+                    em.RemoveComponent<GarbageProducer>(entity);  }
+
+                if (em.HasComponent<MailProducer>(entity))
+                {
+                    em.RemoveComponent<MailProducer>(entity);  }
+
+                // Crime: make abandoned buildings a bit worse for crime,
+                // mirroring PTG / vanilla level-down behaviour.
+                if (em.HasComponent<CrimeProducer>(entity))
+                {
+                    CrimeProducer crimeProducer = em.GetComponentData<CrimeProducer>(entity);
+                    crimeProducer.m_Crime *= 2f;
+                    em.SetComponentData(entity, crimeProducer);
+                }
+
+                // Renters: clear renters and their PropertyRenter components.
+                if (em.HasBuffer<Renter>(entity))
+                {
+                    DynamicBuffer<Renter> renters = em.GetBuffer<Renter>(entity);
+                    for (int i = renters.Length - 1; i >= 0; i--)
+                    {
+                        Entity renterEntity = renters[i].m_Renter;
+                        if (em.Exists(renterEntity) && em.HasComponent<PropertyRenter>(renterEntity))
+                        {
+                            em.RemoveComponent<PropertyRenter>(renterEntity);
+                        }
+
+                        renters.RemoveAt(i);
+                    }
+                }
+
+                // Icons: remove any previous generic problem icons and
+                // add the specific Abandoned notification when possible.
+                if (haveIconBuffer)
+                {
+                    iconBuffer.Remove(entity, IconPriority.Problem);
+                    iconBuffer.Remove(entity, IconPriority.FatalProblem);
+                    iconBuffer.Add(
+                        entity,
+                        buildingConfig.m_AbandonedNotification,
+                        IconPriority.FatalProblem,
+                        IconClusterLayer.Default,
+                        kNoIconFlags,
+                        Entity.Null,
+                        false,
+                        false,
+                        false,
+                        0f);
+                }
+
+                // Mark building as updated this frame.
                 if (!em.HasComponent<Updated>(entity))
                 {
-                    em.AddComponent<Updated>(entity);
+                    em.AddComponent<Updated>(entity);    }
+
+                // Nudge the road edge as well so utilities / networks refresh.
+                if (building.m_RoadEdge != Entity.Null
+                    && em.Exists(building.m_RoadEdge)
+                    && !em.HasComponent<Updated>(building.m_RoadEdge))
+                {
+                    em.AddComponent<Updated>(building.m_RoadEdge);
                 }
             }
 
             // --- DESTROY: instant collapse using vanilla damage/destroy events ---
-
-            BuildingConfigurationData buildingConfig = default;
-            IconCommandBuffer iconBuffer = default;
-            bool haveConfig = false;
-            bool haveIconBuffer = false;
-            IconCommandSystem? iconSystem = m_IconCommandSystem;
+            // --- DESTROY: instant collapse using vanilla damage/destroy events ---
 
             while (m_DestroyQueue.TryDequeue(out Entity entity))
             {
@@ -169,6 +237,9 @@ namespace WreckingBall
                 {
                     continue;
                 }
+
+                // Read building once; we use it later for the road-edge nudge.
+                Building building = em.GetComponentData<Building>(entity);
 
                 // Clear conflicting flags.
                 if (em.HasComponent<Abandoned>(entity))
@@ -181,7 +252,7 @@ namespace WreckingBall
                     em.RemoveComponent<Condemned>(entity);
                 }
 
-                // Lazily grab config + icon buffer once (if available).
+                // Lazily grab config + icon buffer once (if available). only set when needed.
                 if (!haveConfig
                     && iconSystem != null
                     && !m_BuildingConfigQuery.IsEmptyIgnoreFilter)
@@ -220,10 +291,16 @@ namespace WreckingBall
                         0f);
                 }
 
-                // Mark building as updated this frame.
-                if (!em.HasComponent<Updated>(entity))
-                {
-                    em.AddComponent<Updated>(entity);
+                // Mark building as updated this frame, alerts game (e.g., DestroySystem or AbandonSystem)
+                // that state has changed so they can react.
+                if (!em.HasComponent<Updated>(entity))      // does it already have Updated?
+                {       em.AddComponent<Updated>(entity);   // if not, add it
+                }
+                // Nudge road edge so networks refresh after collapse too.
+                if (building.m_RoadEdge != Entity.Null
+                    && em.Exists(building.m_RoadEdge)
+                    && !em.HasComponent<Updated>(building.m_RoadEdge))
+                {  em.AddComponent<Updated>(building.m_RoadEdge);
                 }
             }
         }
